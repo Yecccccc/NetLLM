@@ -10,10 +10,10 @@ ft_plms
 viewport_prediction/videos
 viewport_prediction/video_feature
 viewport_prediction/dataset/preference
+viewport_prediction/data/images/*
 
 
 video_preference/dataset/preference
-video_preference/video_feature
-video_preference/videos
+video_preference/dataset/video
 
-viewport_prediction/data/images/*
+*.mp4

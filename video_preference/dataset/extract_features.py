@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 import torchvision
+import os
 from PIL import Image
 from torchvision import transforms
-import os
-
+from extract_config import ext_cfg
 
 tensor_dict = {}
 
@@ -43,25 +43,23 @@ def get_number_of_files(folder_path):
         file_count += len(files)
     return file_count
 
-def processeachsub(subdirectories, start_folder):
-    folder_number = start_folder
+def processeachsub(subdirectories):
     for subdir in subdirectories:
         print(subdir)
         count = get_number_of_files(subdir)
-        target_dir = '/home/yec/NetLLM/video_preference/video_feature'
+        target_dir = ext_cfg.feature_store_dir
         target_path = os.path.join(target_dir, subdir.split('/')[-1])
         print('target_path:', target_path)
 
         if not os.path.exists(target_path):
             os.makedirs(target_path)
         for file in range(0, count):
-            filename = f'frame_{file:03d}.png'  # frame_000.png ~ frame_299.png
-            print('folder_number', folder_number)
-            store_feature(os.path.join(subdir, filename), file + 1, count, tensor_dict, folder_number)
+            file_num = file + 1
+            filename = f'frame_{file_num:03d}.png'  # frame_000.png ~ frame_299.png
+            store_feature(os.path.join(subdir, filename), file_num, count, tensor_dict, target_path)
 
-        folder_number = folder_number + 1
 
-def store_feature(img_dir, n, count, tensor_dict, folder_number):
+def store_feature(img_dir, n, count, tensor_dict, target_dir):
     '''
     storing features in a dictionary
     '''
@@ -71,22 +69,28 @@ def store_feature(img_dir, n, count, tensor_dict, folder_number):
         transforms.ToTensor()  # change to tensor
     ])
     img_tensor = preprocess(img).unsqueeze(0).to(device)
-    raw_feature = extract_vit_features(img)
+    raw_feature = extract_vit_features(img_tensor)
     tensor_dict[f'{n}'] = raw_feature
-    # 当前代码是10帧保存一次，1080P30FPS的视频保存出30个PTH
-    # todo: 一秒保存一次
-    if n % 10 == 0:   
-        torch.save(tensor_dict, f'/home/yec/NetLLM/video_preference/video_feature/video{folder_number}_images/feature_dict{n//10}.pth')  # the target dir for saving features.
+    if n % ext_cfg.store_step == 0:   
+        torch.save(tensor_dict, os.path.join(target_dir, 'feature_dict'+ str(n//ext_cfg.store_step) + '.pth'))
         tensor_dict.clear()
-        print(n)
+        print('total divide, n:', n, 'target_dir:', target_dir, ' feature_dict'+ str(n//ext_cfg.store_step) + '.pth')
     if n == count:
-        if n % 10 !=0:
-            torch.save(tensor_dict, f'/home/yec/NetLLM/video_preference/video_feature/video{folder_number}_images/feature_dict{(n//10)+1}.pth')
+        if n % 30 !=0:
+            torch.save(tensor_dict, os.path.join(target_dir, 'feature_dict'+ str(n//ext_cfg.store_step + 1) + '.pth'))
+            print('cannot total divide, n:', n, 'target_dir:', target_dir, ' feature_dict'+ str(n//ext_cfg.store_step + 1) + '.pth')
         tensor_dict.clear()
+
 
 
 if __name__ == "__main__":
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    # the source dir for storing saliency maps
-    subdirectories = ['/home/yec/NetLLM/video_preference/videos/video1_images']
-    processeachsub(subdirectories, start_folder=1)
+    img_dir = ext_cfg.image_dir
+
+    subdirectories = []
+    for entry in os.listdir(img_dir):
+        full_path = os.path.join(img_dir, entry)
+        if os.path.isdir(full_path):
+            subdirectories.append(full_path)
+    print('subdirectories:', subdirectories)
+    processeachsub(subdirectories)
