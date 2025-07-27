@@ -104,21 +104,29 @@ class Pipeline(nn.Module):
         :param video_user_position: details information for current trajectory
         :return: the return value by llm
         """
-
+        print(x.shape)
         x = torch.cat((x, future), dim=1)
+        print(x.shape)
         seq_len = x.shape[1]
         batch_embeddings = []
         for i in range(seq_len):
             batch_embeddings.append(self.embed_vp(self.conv1d(x[:, i, :]).view(1,256)).unsqueeze(1))
         x = torch.cat(batch_embeddings, dim=1)
+        print(x.shape)
 
-        if self.using_multimodal:
+        if self.using_multimodal:  # we make using multimodal image features as an option, as not all datasets provide video information.
             mapped_tensor = self.get_multimodal_information(video_user_position)
+            print(mapped_tensor.shape)
+            print(x.shape)
+            # 此处就是直接拼接
             x = torch.cat([mapped_tensor, x], dim=1)
-        
+            print(x.shape)
+
         x = self.embed_ln(x)
+        print(x.shape)
 
         outputs = self.plm(inputs_embeds=x, attention_mask = torch.ones(x.shape[0], x.shape[1], dtype=torch.long, device=self.device), teacher_forcing=True)
+        print(outputs.logits.shape)
         return outputs.logits
     
     def inference(self, batch, future, video_user_info) -> torch.Tensor:

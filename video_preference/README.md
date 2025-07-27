@@ -20,7 +20,7 @@
 ##  video_perferencer训练命令
 
 ```sh
-python run_plm.py --adapt --his-window 3 --fut-window 3 --plm-type llama --plm-size base --epochs 40 --bs 1 --lr 0.0002 --grad-accum-steps 32 --device cuda:0 --steps-per-valid 5000 --save-checkpoint-per-epoch 1 --rank 32 --scheduled-sampling --video_len 10
+python3 run_plm.py --adapt --his-window 3 --fut-window 3 --plm-type llama --plm-size base --epochs 100 --bs 1 --lr 0.0002 --grad-accum-steps 32 --device cuda:0 --steps-per-valid 5000 --save-checkpoint-per-epoch 1 --rank 32 --scheduled-sampling --video-len 10
 ```
 
 ## VIT多模态特征提取模块
